@@ -1,7 +1,7 @@
 fx_version 'cerulean'
 game 'gta5'
 author 'kats'
-description 'Cooldown handler for Hellcity'
+description 'Cooldown handler for FiveM'
 
 
 shared_scripts {
@@ -10,4 +10,5 @@ shared_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server.lua'
+
 }
