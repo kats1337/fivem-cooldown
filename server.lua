@@ -6,9 +6,34 @@ cdExpireEvents = {}
 AddCooldownForIdentifier = function(name, time)
     if identifierCooldowns[name] then
         print("Cooldown already exists for identifier: " .. name)
+        print("Cooldown already exists for identifier: " .. name.. " use ExtendCooldownForIdentifier instead.")
         return false
     end
     identifierCooldowns[name] = os.time() + time
+
+    Citizen.CreateThread(function()
+        while true do
+            local endTime = identifierCooldowns[name]
+            if not endTime then
+                break
+            end
+
+            local remaining = endTime - os.time()
+            if remaining <= 0 then
+                identifierCooldowns[name] = nil
+                if cdExpireEvents[name] then
+                    local eventData = cdExpireEvents[name]
+                    TriggerEvent(eventData.event, table.unpack(eventData.args))
+                    cdExpireEvents[name] = nil
+                end
+                break
+            end
+
+            local sleepMs = math.min(remaining, 1) * 1000
+            Citizen.Wait(sleepMs)
+        end
+    end)
+
     return true
 end
 
@@ -93,24 +118,6 @@ GetCooldownDurationForIdentifier = function(name)
     return nil
 end
 
--- Loop every minute to clean up expired cooldowns
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(60000) -- 60 seconds
-        local currentTime = os.time()
-        for name, endTime in pairs(identifierCooldowns) do
-            if endTime <= currentTime then
-                identifierCooldowns[name] = nil
-                if cdExpireEvents[name] then
-                    local eventData = cdExpireEvents[name]
-                    TriggerEvent(eventData.event, table.unpack(eventData.args))
-                    cdExpireEvents[name] = nil
-                end
-            end
-        end
-    end
-end)
-
 exports('AddCooldownForIdentifier', function(name, time)
     local res = GetInvokingResource()
     cdExpireEvents[name] = {
@@ -133,3 +140,4 @@ exports('GetAllActiveCooldowns', GetAllActiveCooldowns)
 exports('GetCooldownEndTimeForIdentifier', GetCooldownEndTimeForIdentifier)
 exports('GetCooldownStartTimeForIdentifier', GetCooldownStartTimeForIdentifier)
 exports('GetCooldownDurationForIdentifier', GetCooldownDurationForIdentifier)
+
